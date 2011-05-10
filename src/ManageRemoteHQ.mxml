@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009"
+					   xmlns:s="library://ns.adobe.com/flex/spark"
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   xmlns:net="flash.net.*"
+					   width="1000" height="509" backgroundColor="#706880">
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.core.IUIComponent;
+			import mx.graphics.ImageSnapshot;
+			import mx.graphics.codec.PNGEncoder;
+			import mx.utils.StringUtil;
+			import flash.net.URLLoader;
+			
+
+			
+			protected function btnCapture_clickHandler(event:MouseEvent):void
+			{
+				
+				var pngEncoder:PNGEncoder = new PNGEncoder();
+				var bitmap:Bitmap = image.content as Bitmap;
+				var bytes:ByteArray = pngEncoder.encode( bitmap.bitmapData);
+				
+				var request : URLRequest = new 
+					URLRequest("http://localhost:3000/projects/12/screenshots");
+				request.method = URLRequestMethod.POST;
+				var boundary:String = '----------Ij5GI3GI3ei4GI3ei4KM7GI3KM7KM7';
+				request.contentType = "multipart/form-data; boundary=" + boundary;
+				request.data = getMultiPartRequestData(boundary, 'screenshot',
+					'picture.png', bytes);
+				loader.load(request);     
+				
+			}
+			
+			private function getMultiPartRequestData(boundary:String,
+													 resourceName:String, filename:String, bytes:ByteArray):ByteArray {
+				var lf:String = "\r\n";
+				var part1:String =  '--' + boundary + lf +
+					'Content-Disposition: form-data; name="utf8"' + lf + lf +
+					'âœ“' + lf +
+					'--' + boundary + lf + 
+					'Content-Disposition: form-data; name="commit"' + lf + lf +  
+					'Upload' + lf + 
+					'--' + boundary + lf +                      
+					'Content-Disposition: form-data; name="{1}[image]"; ' +
+					'filename="{0}"' + lf +
+					'Content-Type: image/png' + lf +lf
+				var part2:String =  '--' + boundary + lf +
+					'Content-Disposition: form-data; name="Upload"' + lf + lf +
+					'Submit Query' + lf +
+					'--' + boundary +  '--'
+				var result:ByteArray = new ByteArray();
+				result.writeMultiByte(StringUtil.substitute(part1, filename,
+					resourceName), "ascii");
+				result.writeBytes(bytes, 0, bytes.length)
+				result.writeMultiByte(part2, "ascii");
+				return result;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<net:URLLoader id="loader"
+					   dataFormat="binary" />
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<mx:HBox x="224" y="19" width="268" cornerRadius="14">
+	</mx:HBox>
+	
+	<mx:HTML id="myBrowser" x="10" y="79" width="986" height="420" borderStyle="inset"
+			 borderThickness="4"/>
+	<mx:Button x="503" y="18" height="25" label="Go" click="myBrowser.location=myText.text"
+			   fontSize="16"/>
+	<mx:Button x="570" y="18" height="25" label="Capture" id="btnCapture" click="btnCapture_clickHandler(event)"
+			   fontSize="16"/>
+	<s:Image x="45" y="9" source="assets/manageremotelogo.png"/>
+	<mx:TextInput id="myText" x="225" y="18" width="268" click="myText.text=&quot;&quot;"
+				  color="#BEBEBE" fontSize="12" text="Enter URL Here"/>
+	
+	<mx:ProgressBar  mode="event" source="loader"/>
+	<mx:Image id="image"
+			  source="http://flexonrails.com/book_images/butterfly.jpg" />
+</s:WindowedApplication>
