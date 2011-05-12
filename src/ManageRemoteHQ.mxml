@@ -3,24 +3,40 @@
 					   xmlns:s="library://ns.adobe.com/flex/spark"
 					   xmlns:mx="library://ns.adobe.com/flex/mx"
 					   xmlns:net="flash.net.*"
+					  
 					   width="1000" height="509" backgroundColor="#706880">
+	<!-- 
+	TODO:
+	1) Capture screenshot of HTML and upload
+	1.5) Allow selection panel
+	1.75) Allow drawing on image
+	2) Login support
+	3) Pull down list of projects and use selected rather than hardcoded
+	4) Use non-standard chrome
+	-->
+	
 	
 	<fx:Script>
 		<![CDATA[
+			import flash.net.URLLoader;
+			
 			import mx.core.IUIComponent;
 			import mx.graphics.ImageSnapshot;
 			import mx.graphics.codec.PNGEncoder;
 			import mx.utils.StringUtil;
-			import flash.net.URLLoader;
 			
-
 			
 			protected function btnCapture_clickHandler(event:MouseEvent):void
 			{
 				
+				var imageSnap:ImageSnapshot = ImageSnapshot.captureImage(myBrowser);
+				var bytes:ByteArray = imageSnap.data as ByteArray;
+				
+				/*
 				var pngEncoder:PNGEncoder = new PNGEncoder();
 				var bitmap:Bitmap = image.content as Bitmap;
 				var bytes:ByteArray = pngEncoder.encode( bitmap.bitmapData);
+				*/
 				
 				var request : URLRequest = new 
 					URLRequest("http://localhost:3000/projects/12/screenshots");
@@ -58,6 +74,27 @@
 				return result;
 			}
 			
+			protected function btnGo_clickHandler(event:MouseEvent):void
+			{
+				var prefix:String = "http://";
+				var finalUrl:String = txtUrl.text;
+			    if (txtUrl.text.toLowerCase().indexOf("http://") == -1)
+				{
+					finalUrl = prefix + finalUrl;
+				}
+	
+				myBrowser.location=finalUrl;
+			}
+			
+			protected function txtUrl_clickHandler(event:MouseEvent):void
+			{
+				
+				txtUrl.text="";
+				txtUrl.setStyle("color","black");
+			
+				
+			}
+			
 		]]>
 	</fx:Script>
 	
@@ -69,17 +106,18 @@
 	<mx:HBox x="224" y="19" width="268" cornerRadius="14">
 	</mx:HBox>
 	
+	
 	<mx:HTML id="myBrowser" x="10" y="79" width="986" height="420" borderStyle="inset"
 			 borderThickness="4"/>
-	<mx:Button x="503" y="18" height="25" label="Go" click="myBrowser.location=myText.text"
+	<mx:Button x="503" y="18" height="25" label="Go" id="btnGo" click="btnGo_clickHandler(event)"
 			   fontSize="16"/>
 	<mx:Button x="570" y="18" height="25" label="Capture" id="btnCapture" click="btnCapture_clickHandler(event)"
 			   fontSize="16"/>
 	<s:Image x="45" y="9" source="assets/manageremotelogo.png"/>
-	<mx:TextInput id="myText" x="225" y="18" width="268" click="myText.text=&quot;&quot;"
+	<mx:TextInput id="txtUrl" x="225" y="18" width="268" click="txtUrl_clickHandler(event)"
 				  color="#BEBEBE" fontSize="12" text="Enter URL Here"/>
 	
-	<mx:ProgressBar  mode="event" source="loader"/>
-	<mx:Image id="image"
-			  source="http://flexonrails.com/book_images/butterfly.jpg" />
+	<!-- <mx:ProgressBar  mode="event" source="loader"/> -->
+	<!-- <mx:Image id="image"
+			  source="http://flexonrails.com/book_images/butterfly.jpg" /> -->
 </s:WindowedApplication>
