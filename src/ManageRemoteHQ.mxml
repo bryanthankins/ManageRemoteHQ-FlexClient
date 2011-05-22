@@ -1,123 +1,249 @@
 <?xml version="1.0" encoding="utf-8"?>
 <s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009"
-					   xmlns:s="library://ns.adobe.com/flex/spark"
-					   xmlns:mx="library://ns.adobe.com/flex/mx"
-					   xmlns:net="flash.net.*"
-					  
-					   width="1000" height="509" backgroundColor="#706880">
-	<!-- 
-	TODO:
-	1) Capture screenshot of HTML and upload
-	1.5) Allow selection panel
-	1.75) Allow drawing on image
-	2) Login support
-	3) Pull down list of projects and use selected rather than hardcoded
-	4) Use non-standard chrome
-	-->
+    xmlns:s="library://ns.adobe.com/flex/spark"
+    xmlns:mx="library://ns.adobe.com/flex/mx"
+    xmlns:net="flash.net.*"
+    creationComplete="init();"
+    width="1000" height="509" backgroundColor="#706880" xmlns:local="*">
+    <!-- 
+    TODO:
+    0) Will save image to filesystem, then read back upload, and delete
+    0) Save image to gallery (save to filesystem and xml file)
+    1) Support adding arrow
+    2) Login support
+    3) Pull down list of projects and use selected rather than hardcoded
+    
+    -->
+
+
+    <fx:Script>
+        <![CDATA[
+        import flash.net.URLLoader;
+        
+        import mx.collections.ArrayCollection;
+        import mx.core.IUIComponent;
+        import mx.events.ItemClickEvent;
+        import mx.graphics.ImageSnapshot;
+        import mx.graphics.codec.JPEGEncoder;
+        import mx.graphics.codec.PNGEncoder;
+        import mx.utils.StringUtil;
+
+        private function init():void
+        {
+        service.send();
+
+        }
+
+        private function startEvent(event:Event):void
+        {
+        Hourglass.visible = true;
+        }
+
+        private function removeAlert(evt:Event):void 
+        {
+        Hourglass.visible = false;
+        }
+
+        protected function btnCapture_clickHandler(event:MouseEvent):void
+        {
+			myBrowser.alpha = 0.5;
+			
+    	
+			var pngEnc:PNGEncoder = new PNGEncoder();
+			var imageSnapshot:ImageSnapshot = ImageSnapshot.captureImage(myBrowser, 0, pngEnc);
+		var bytes:ByteArray = imageSnapshot.data as ByteArray;
 	
-	
-	<fx:Script>
-		<![CDATA[
-			import flash.net.URLLoader;
-			
-			import mx.core.IUIComponent;
-			import mx.graphics.ImageSnapshot;
-			import mx.graphics.codec.PNGEncoder;
-			import mx.utils.StringUtil;
-			
-			
-			protected function btnCapture_clickHandler(event:MouseEvent):void
+		var fl:File = File.applicationStorageDirectory.resolvePath("snapshot.png");
+		
+		//Use a FileStream to save the bytearray as bytes to the new file
+		var fs:FileStream = new FileStream();
+		try{
+			//open file in write mode
+			fs.open(fl,FileMode.WRITE);
+			//write bytes from the byte array
+			fs.writeBytes(bytes);
+			//close the file
+			fs.close();
+		}catch(e:Error){
+			trace(e.message);
+		}
+		
+		myBrowser.alpha = 1;
+		
+		//TODO: will use this to get the files back from the directory
+		//var files:ArrayCollection = new ArrayCollection(File.applicationStorageDirectory.getDirectoryListing());
+
+		/* save with dialog
+		var pngEnc:PNGEncoder = new PNGEncoder();
+		var imageSnapshot:ImageSnapshot = ImageSnapshot.captureImage(myBrowser, 0, pngEnc);
+		
+		var fileReference:FileReference = new FileReference();
+        fileReference.save(imageSnapshot.data, "img123.png");
+        */
+
+        /* old way
+        var imageSnap:ImageSnapshot = ImageSnapshot.captureImage(myBrowser);
+        var bytes:ByteArray = imageSnap.data as ByteArray;
+
+
+        var request : URLRequest = new 
+        URLRequest("http://localhost:3000/projects/12/screenshots");
+        request.method = URLRequestMethod.POST;
+        var boundary:String = '----------Ij5GI3GI3ei4GI3ei4KM7GI3KM7KM7';
+        request.contentType = "multipart/form-data; boundary=" + boundary;
+        request.data = getMultiPartRequestData(boundary, 'screenshot',
+        'picture.png', bytes);
+        loader.load(request);     
+        
+        */
+        }
+
+        private function getMultiPartRequestData(boundary:String,
+        resourceName:String, filename:String, bytes:ByteArray):ByteArray {
+        var lf:String = "\r\n";
+        var part1:String =  '--' + boundary + lf +
+        'Content-Disposition: form-data; name="utf8"' + lf + lf +
+        'âœ“' + lf +
+        '--' + boundary + lf + 
+        'Content-Disposition: form-data; name="commit"' + lf + lf +  
+        'Upload' + lf + 
+        '--' + boundary + lf +                      
+        'Content-Disposition: form-data; name="{1}[image]"; ' +
+        'filename="{0}"' + lf +
+        'Content-Type: image/png' + lf +lf
+        var part2:String =  '--' + boundary + lf +
+        'Content-Disposition: form-data; name="Upload"' + lf + lf +
+        'Submit Query' + lf +
+        '--' + boundary +  '--'
+        var result:ByteArray = new ByteArray();
+        result.writeMultiByte(StringUtil.substitute(part1, filename,
+        resourceName), "ascii");
+        result.writeBytes(bytes, 0, bytes.length)
+        result.writeMultiByte(part2, "ascii");
+        return result;
+        }
+
+        protected function btnGo_clickHandler(event:MouseEvent):void
+        {
+        NavigateToUrl();
+        
+        }
+
+        private function NavigateToUrl():void
+        {
+
+        var prefix:String = "http://";
+        var finalUrl:String = txtUrl.text;
+        if (txtUrl.text.toLowerCase().indexOf("http://") == -1)
+        {
+        finalUrl = prefix + finalUrl;
+        }
+
+        myBrowser.location=finalUrl;
+
+
+        }
+
+        protected function txtUrl_clickHandler(event:MouseEvent):void
+        {
+        
+        txtUrl.text="";
+        txtUrl.setStyle("color","black");
+
+        
+        }
+
+        protected function txtUrl_keyDownHandler(event:KeyboardEvent):void
+        {
+        
+        if(event.keyCode == 13)
+        {
+        NavigateToUrl();
+        }
+        }
+
+        protected function buttonbar1_itemClickHandler(event:ItemClickEvent):void
+        {
+        // TODO Auto-generated method stub
+        //myViewStack.selectedChild=search;
+        
+        }
+
+			protected function btnUpload_clickHandler(event:MouseEvent):void
 			{
-				
-				var imageSnap:ImageSnapshot = ImageSnapshot.captureImage(myBrowser);
-				var bytes:ByteArray = imageSnap.data as ByteArray;
-				
-				/*
-				var pngEncoder:PNGEncoder = new PNGEncoder();
-				var bitmap:Bitmap = image.content as Bitmap;
-				var bytes:ByteArray = pngEncoder.encode( bitmap.bitmapData);
-				*/
-				
-				var request : URLRequest = new 
-					URLRequest("http://localhost:3000/projects/12/screenshots");
-				request.method = URLRequestMethod.POST;
-				var boundary:String = '----------Ij5GI3GI3ei4GI3ei4KM7GI3KM7KM7';
-				request.contentType = "multipart/form-data; boundary=" + boundary;
-				request.data = getMultiPartRequestData(boundary, 'screenshot',
-					'picture.png', bytes);
-				loader.load(request);     
-				
-			}
-			
-			private function getMultiPartRequestData(boundary:String,
-													 resourceName:String, filename:String, bytes:ByteArray):ByteArray {
-				var lf:String = "\r\n";
-				var part1:String =  '--' + boundary + lf +
-					'Content-Disposition: form-data; name="utf8"' + lf + lf +
-					'âœ“' + lf +
-					'--' + boundary + lf + 
-					'Content-Disposition: form-data; name="commit"' + lf + lf +  
-					'Upload' + lf + 
-					'--' + boundary + lf +                      
-					'Content-Disposition: form-data; name="{1}[image]"; ' +
-					'filename="{0}"' + lf +
-					'Content-Type: image/png' + lf +lf
-				var part2:String =  '--' + boundary + lf +
-					'Content-Disposition: form-data; name="Upload"' + lf + lf +
-					'Submit Query' + lf +
-					'--' + boundary +  '--'
-				var result:ByteArray = new ByteArray();
-				result.writeMultiByte(StringUtil.substitute(part1, filename,
-					resourceName), "ascii");
-				result.writeBytes(bytes, 0, bytes.length)
-				result.writeMultiByte(part2, "ascii");
-				return result;
-			}
-			
-			protected function btnGo_clickHandler(event:MouseEvent):void
-			{
-				var prefix:String = "http://";
-				var finalUrl:String = txtUrl.text;
-			    if (txtUrl.text.toLowerCase().indexOf("http://") == -1)
-				{
-					finalUrl = prefix + finalUrl;
-				}
-	
-				myBrowser.location=finalUrl;
-			}
-			
-			protected function txtUrl_clickHandler(event:MouseEvent):void
-			{
-				
-				txtUrl.text="";
-				txtUrl.setStyle("color","black");
-			
+				// TODO Auto-generated method stub
 				
 			}
 			
 		]]>
-	</fx:Script>
-	
-	<fx:Declarations>
-		<net:URLLoader id="loader"
-					   dataFormat="binary" />
-		<!-- Place non-visual elements (e.g., services, value objects) here -->
-	</fx:Declarations>
-	<mx:HBox x="224" y="19" width="268" cornerRadius="14">
-	</mx:HBox>
-	
-	
-	<mx:HTML id="myBrowser" x="10" y="79" width="986" height="420" borderStyle="inset"
-			 borderThickness="4"/>
-	<mx:Button x="503" y="18" height="25" label="Go" id="btnGo" click="btnGo_clickHandler(event)"
-			   fontSize="16"/>
-	<mx:Button x="570" y="18" height="25" label="Capture" id="btnCapture" click="btnCapture_clickHandler(event)"
-			   fontSize="16"/>
-	<s:Image x="45" y="9" source="assets/manageremotelogo.png"/>
-	<mx:TextInput id="txtUrl" x="225" y="18" width="268" click="txtUrl_clickHandler(event)"
-				  color="#BEBEBE" fontSize="12" text="Enter URL Here"/>
-	
-	<!-- <mx:ProgressBar  mode="event" source="loader"/> -->
-	<!-- <mx:Image id="image"
-			  source="http://flexonrails.com/book_images/butterfly.jpg" /> -->
+    </fx:Script>
+
+    <!-- Place non-visual elements (e.g., services, value objects) here -->
+    <fx:Declarations>
+        <mx:HTTPService id="service" url="assets/photos.xml" resultFormat="e4x" />  
+        <net:URLLoader id="loader" dataFormat="binary" />
+        <mx:Fade id="fadeOut" alphaFrom="1.0" alphaTo="0.0"/>
+        <mx:Fade id="fadeIn" alphaFrom="0.0" alphaTo="1.0"/>
+        <mx:Sequence id="seq" duration="650" repeatCount="500" repeatDelay="100" target="{Hourglass}" >
+            <mx:Fade alphaFrom="1" alphaTo=".2"/>
+            <mx:Fade alphaFrom=".2" alphaTo="1"/>
+        </mx:Sequence>
+    </fx:Declarations>
+    
+    <mx:TabNavigator id="tabMain" left="10" right="2" top="10" bottom="10" creationPolicy="all"> 
+        <!-- Start Browser Section -->
+        <mx:Canvas label="Browser" width="100%" height="100%"> 
+            <mx:HBox x="224" y="19" width="268" cornerRadius="14">
+            </mx:HBox>
+            <mx:HTML id="myBrowser" left="10" right="4" top="43" bottom="10" 
+                htmlDOMInitialize="startEvent(event)" 
+                complete="removeAlert(event)"
+                includeInLayout="true" 
+                showEffect="{fadeIn}" 
+                hideEffect="{fadeOut}" 
+                borderStyle="inset"
+                borderThickness="4"/>
+            <mx:Button x="291" y="9" height="25" label="Go" id="btnGo" click="btnGo_clickHandler(event)"
+                fontSize="16"/>
+            <mx:Button id="btnCapture" x="371" y="9" height="25" label="Capture"
+					   click="btnCapture_clickHandler(event)" fontSize="16"
+					   toolTip="Capture to Gallery"/>
+            <s:Image x="45" y="9" source="assets/manageremotelogo.png" visible="false"/>
+            <mx:TextInput id="txtUrl" x="11" y="12" width="268" click="txtUrl_clickHandler(event)"
+                color="#BEBEBE" cornerRadius="4" fontSize="12" borderStyle="solid"
+                keyDown="txtUrl_keyDownHandler(event)" text="Enter URL Here"/>
+            <mx:ProgressBar x="738" y="8" id="Hourglass" showEffect="seq" visible="false" label="Loading" mode="manual" 
+                indeterminate="true" maximum="100" minimum="0">
+            </mx:ProgressBar>
+        </mx:Canvas>
+        <!-- End Browser Section -->
+
+        <!-- Start Gallery section -->
+        <mx:Canvas label="Gallery" width="100%" height="100%"> 
+            <mx:TabNavigator id="tabGallery" width="250" left="10" top="38" bottom="10" creationPolicy="all"> 
+                <mx:Canvas label="List View" width="100%" height="100%"> 
+                    <mx:List id="photosList" y="0" width="100%" height="375"
+							 change="photosTileList.selectedIndex=photosList. selectedIndex"
+							 dataProvider="{service.lastResult.photo}" labelField="@title"/> 
+                </mx:Canvas>  
+                <mx:Canvas label="Tile View" width="100%" height="100%">
+                    <mx:TileList id="photosTileList" dataProvider="{service.lastResult.photo}" width="100%" height="100%" change="photosList.selectedIndex=photosTileList. selectedIndex" > 
+                        <mx:itemRenderer>
+                            <fx:Component> 
+                                <mx:Image horizontalAlign="center" source="{data.@thumb}" toolTip="{data.@title}" width="100" height="60" /> 
+                            </fx:Component> 
+                        </mx:itemRenderer> 
+                    </mx:TileList>
+                </mx:Canvas>  
+            </mx:TabNavigator> 
+            <mx:Image id="image" source="{photosList.selectedItem.@image}" left="270" top="38" bottom="10" right="10" horizontalAlign="center" open="progressBar.visible = true" complete="progressBar.visible = false"/> 
+            <mx:ProgressBar id="progressBar" x="270" y="10" source="{image}" visible="false" />  
+			<mx:Button id="btnUpload" y="5" right="162" height="25" label="Upload"
+					   click="btnUpload_clickHandler(event)" fontSize="16"
+					   toolTip="Capture to Gallery"/>
+        </mx:Canvas>
+        <!-- End Gallery Section -->
+
+    </mx:TabNavigator> 
+
 </s:WindowedApplication>
